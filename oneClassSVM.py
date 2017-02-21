@@ -13,13 +13,13 @@ cleanLabel = -1
 columns = [0,4,5]
 alpha = 0
 beta = 50
-gamma_list = [2]*1
+gamma_list = [2]*1  #this list is used to run a loop of varying gammas, each element is your gamma factor
 detailString, train_clean, train_dirty, X_test, y_test, cleanTrain, dirtyTrain, cleanTest, dirtyTest = \
     train_test(filename,cleanLabel,columns,alpha,beta)
 
 startTime = time.time()
 
-outliers_fraction = dirtyTest/(dirtyTest+cleanTest)
+outliers_fraction = dirtyTest/(dirtyTest+cleanTest) #outliers_fraction is pulled from Das's sample code. I'm pretty sure this is what it means but I may be wrong
 
 serviceType = filename[:filename.index('_')]
 file_name = '{}_oneClassSVM{}'.format(serviceType,'_alpha{}'.format(alpha))
