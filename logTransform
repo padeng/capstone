@@ -13,7 +13,7 @@ for file in csvFiles:
     else:
         X = np.genfromtxt(file,delimiter=',',dtype=np.int)
         Y = X[:,-1]
-        X = np.log2(X[:, 0:-1] + 1)
+        X = np.log2(X[:, 0:-1] + 1) # Choose columns of X to log transform
         X = np.c_[X, Y]
         print(X[:5])
         print(X.shape)
