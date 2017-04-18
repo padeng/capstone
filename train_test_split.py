@@ -3,7 +3,7 @@
 
 #example of how to call train_test fuction:
 # filename = 'http_9columns_all_-1_clean.csv'
-# cleanLabel = -1
+# cleanLabel = float(-1)
 # columns = list(range(0,10))
 # alpha = 0
 # beta = 50
@@ -11,9 +11,19 @@
 
 import csv
 import random
+from sklearn.preprocessing import normalize
+import numpy as np
+
 
 def train_test(filename, cleanLabel, columns, alpha, beta):
-    row_list = csv.reader(open(filename, 'r'))
+    row_list = csv.reader(open(filename, newline=''))
+    # row_list = np.loadtxt(filename,delimiter=',')
+    # print(row_list[0])
+    # labels = row_list[:, [-1]]
+    # row_list = normalize(row_list[:,range(0,len(row_list[0]-1))])
+    # row_list = np.concatenate((row_list, labels), axis=1)
+    # row_list = row_list.tolist()
+    # print(row_list[0])
 
     train_features = []
     train_clean = []
@@ -31,13 +41,14 @@ def train_test(filename, cleanLabel, columns, alpha, beta):
 
     if len(columns) == len(next(row_list))-1:
         for row in row_list:
-            row = list(map(int, row))
+            row = list(map(float, row))
             total += 1
             rand = random.randint(0, 100)
             if row[-1] == cleanLabel:
                 if rand < beta:
-                    train_features.append(row[:-1])
-                    train_class.append(row[-1])
+                    # train_features.append(row[:-1])
+                    # train_class.append(row[-1])
+                    train_clean.append(row)
                     cleanTrain += 1
                 else:
                     X_test.append(row[:-1])
@@ -45,8 +56,9 @@ def train_test(filename, cleanLabel, columns, alpha, beta):
                     cleanTest += 1
             else:
                 if rand < alpha:
-                    train_features.append(row[:-1])
-                    train_class.append(row[-1])
+                    # train_features.append(row[:-1])
+                    # train_class.append(row[-1])
+                    train_dirty.append(row)
                     dirtyTrain += 1
                 else:
                     X_test.append(row[:-1])
@@ -54,9 +66,13 @@ def train_test(filename, cleanLabel, columns, alpha, beta):
                     dirtyTest += 1
     else:
         for row in row_list:
+            #print(row)
+            #print(columns[0])
             y = [row[index] for index in columns]
             y.append(row[-1])
-            row = list(map(int, y))
+            row = list(map(float, y))
+            #print(row)
+            #print(cleanLabel)
             total += 1
             rand = random.randint(0, 100)
             if row[-1] == cleanLabel:
@@ -80,6 +96,8 @@ def train_test(filename, cleanLabel, columns, alpha, beta):
                     y_test.append(row[-1])
                     dirtyTest += 1
 
+
+    print(len(train_clean))
 
     train = dirtyTrain + cleanTrain
     trainPercent = (train / total) * 100
