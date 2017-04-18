@@ -1,12 +1,12 @@
 import os, csv
 import numpy as np
 
-path = '/Users/dan/PycharmProjects/KDD/CSVs/service_type'
+path = '/Users/dan/PycharmProjects/KDD/CSVs/service_type' # you'll need to change the path on your comp.
 csvFiles = os.listdir(path)
 os.chdir(path)
 print(csvFiles)
 
-path2 = '/Users/dan/PycharmProjects/KDD/CSVs/service_type/logTransformed'
+path2 = '/Users/dan/PycharmProjects/KDD/CSVs/service_type/logTransformed' # you'll need to change the path on your comp.
 for file in csvFiles:
     if file == '.DS_Store' or file == 'logTransformed':
         a=0
