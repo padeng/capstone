@@ -1,0 +1,210 @@
+#*******************
+# create model
+#*******************
+from keras.layers import Input, Dense
+from keras.models import Model
+
+# This is the size of the input and output data
+input_dim = 6
+
+# this is the size of our encoded representations
+encoding_dim = 1  # 32 floats -> compression of factor 24.5, assuming the input is 784 floats
+
+# this is our input placeholder
+input_img = Input(shape=(input_dim,))
+# "encoded" is the encoded representation of the input
+encoded = Dense(encoding_dim, activation='relu')(input_img)
+# "decoded" is the lossy reconstruction of the input
+decoded = Dense(input_dim, activation='sigmoid')(encoded)
+
+# this model maps an input to its reconstruction
+autoencoder = Model(input_img, decoded)
+autoencoder.compile(optimizer='sgd', loss='mean_squared_error')
+# this model maps an input to its encoded representation
+encoder = Model(input_img, encoded)
+# create a placeholder for an encoded (32-dimensional) input
+encoded_input = Input(shape=(encoding_dim,))
+# retrieve the last layer of the autoencoder model
+decoder_layer = autoencoder.layers[-1]
+# create the decoder model
+decoder = Model(encoded_input, decoder_layer(encoded_input))
+
+#*******************
+# train_test_split definition
+#*******************
+import csv
+import random
+
+def train_test(filename, cleanLabel, columns, alpha, beta):
+    row_list = csv.reader(open(filename, 'r'))
+
+    train_features = []
+    train_clean = []
+    train_dirty = []
+    train_class = []
+    X_test = []
+    y_test = []
+
+    cleanTrain = 0
+    dirtyTrain = 0
+    cleanTest = 0
+    dirtyTest = 0
+    total = 0
+
+
+    if len(columns) == len(next(row_list))-1:
+        for row in row_list:
+            row = list(map(int, row))
+            total += 1
+            rand = random.randint(0, 100)
+            if row[-1] == cleanLabel:
+                if rand < beta:
+                    train_features.append(row[:-1])
+                    train_class.append(row[-1])
+                    cleanTrain += 1
+                else:
+                    X_test.append(row[:-1])
+                    y_test.append(row[-1])
+                    cleanTest += 1
+            else:
+                if rand < alpha:
+                    train_features.append(row[:-1])
+                    train_class.append(row[-1])
+                    dirtyTrain += 1
+                else:
+                    X_test.append(row[:-1])
+                    y_test.append(row[-1])
+                    dirtyTest += 1
+    else:
+        for row in row_list:
+            y = [row[index] for index in columns]
+            y.append(row[-1])
+            row = list(map(int, y))
+            total += 1
+            rand = random.randint(0, 100)
+            if row[-1] == cleanLabel:
+                if rand < beta:
+                    # train_features.append(row[:-1])
+                    # train_class.append(row[-1])
+                    train_clean.append(row)
+                    cleanTrain += 1
+                else:
+                    X_test.append(row[:-1])
+                    y_test.append(row[-1])
+                    cleanTest += 1
+            else:
+                if rand < alpha:
+                    # train_features.append(row[:-1])
+                    # train_class.append(row[-1])
+                    train_dirty.append(row)
+                    dirtyTrain += 1
+                else:
+                    X_test.append(row[:-1])
+                    y_test.append(row[-1])
+                    dirtyTest += 1
+
+
+    train = dirtyTrain + cleanTrain
+    trainPercent = (train / total) * 100
+    dirtyTrainPercent = (dirtyTrain / train) * 100
+    test = dirtyTest + cleanTest
+    dirtyTestPercent = (dirtyTest / test) * 100
+
+    detailString = 'file used: "{}" \n' \
+                   'columns used: {}, apha: {}, beta: {} \n' \
+                   'training set: {} dirty + {} clean = {} total -- {}%. of all data in the file. \n' \
+                   'percentage of dirty in training set: {}% \n' \
+                   'testing set: {} dirty + {} clean = {} total \n' \
+                   'percentage of dirty in test set: {}%'.format(filename, columns, alpha, beta, dirtyTrain,
+                                                                 cleanTrain, train, round(trainPercent, 3),
+                                                                 round(dirtyTrainPercent, 3), dirtyTest, cleanTest,
+                                                                 test, round(dirtyTestPercent, 3))
+    # print(filename)
+    # print('columns used:',columns,', apha:', alpha, ', beta:', beta)
+    # print('training set:', dirtyTrain, 'dirty +', cleanTrain, 'clean = ', train, 'total --', round(trainPercent, 3),
+    #       '%. of all data in the file.')
+    # print('percentage of dirty in training set:', round(dirtyTrainPercent, 3), '%')
+    # print('testing set:', dirtyTest, 'dirty +', cleanTest, 'clean = ', test, 'total')
+    # print('percentage of dirty in test set:', round(dirtyTestPercent, 3), '%')
+    print(detailString)
+    print()
+
+    return detailString, train_clean, train_dirty, X_test, y_test, cleanTrain, dirtyTrain, cleanTest, dirtyTest
+
+
+
+#*******************
+# load data
+#*******************
+import numpy as np
+# 'Categorized CSV files' + filename because it is in a folder
+filename = 'Categorized CSV files\smtp_9columns_all_-1_clean.csv'
+cleanLabel = -1
+#columns = [0,4,5,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40]
+# these are the columns we want to actually run when the files are ready
+columns = [0,4,5,6,7,8]
+# these are the available columns right now in the file 'smtp_9columns_all_-1_clean.csv'
+
+alpha = 0
+beta = 50
+[detailString, train_clean, train_dirty, xx_test, y_test, cleanTrain, dirtyTrain, cleanTest, dirtyTest] = train_test(filename, cleanLabel, columns, alpha, beta)
+x_train = np.asarray(train_clean)
+x_test = np.asarray(xx_test)
+
+
+# from kdd
+#from keras.datasets import mnist
+
+#(x_train, _), (x_test, _) = mnist.load_data()
+x_train = x_train.astype('float32') / 255.
+x_test = x_test.astype('float32') / 255.
+x_train = x_train.reshape((len(x_train), np.prod(x_train.shape[1:])))
+x_test = x_test.reshape((len(x_test), np.prod(x_test.shape[1:])))
+train_clean = np.asarray(x_train[:,0:6])
+xx_test = np.asarray(x_test)
+print(train_clean.shape)
+print(xx_test.shape)
+
+
+
+#*******************
+# train model
+#*******************
+autoencoder.fit(train_clean, train_clean,
+                verbose=2,
+                epochs = 15,
+                batch_size=64,
+                shuffle=True,
+                validation_split=0.3)
+# encode and decode some digits
+# note that we take them from the *test* set
+encoded_in = encoder.predict(xx_test)
+decoded_in = decoder.predict(encoded_in)
+print(xx_test.shape, decoded_in.shape)
+
+
+#*******************
+# test model
+#*******************
+from sklearn.metrics import confusion_matrix
+
+error = xx_test - decoded_in
+(rows, columns) = error.shape
+totalsum1 = 0
+threshold = 25
+pred_labels = []
+clean = 0
+dirty = 0
+for idx in range(rows):
+    sum1 = 0
+    for idy in range(columns):
+        sum1 += error[idx,idy]*error[idx,idy]
+    totalsum1 += sum1
+    if sum1<threshold:
+        pred_labels.append(-1)
+        clean += 1
+    else:
+        pred_labels.append(1)
+        dirty += 1
+print(clean, dirty, totalsum1/(clean+dirty))
+print(confusion_matrix(y_test, pred_labels))
